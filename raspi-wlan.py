@@ -49,6 +49,18 @@ def iwlist_scan(wlan, aps):
             return ap
     return None
 
+def ifconfig_scan(wlans):
+    for wlan in wlans:
+        wlan.ip = None
+
+    for wlan in wlans:
+        with os.popen("ifconfig %s 2>/dev/null|grep 'inet addr'|awk -F ':' '{print $2}'|awk '{print $1}'"%(wlan.ifname)) as f:
+            ip = f.read().strip()
+            if len(ip) > 0:
+                wlan.ip = ip
+                return wlan
+    return None
+
 while True:
     # detect the device, maybe changed.
     wlans = []
@@ -66,22 +78,10 @@ while True:
         break
 
     # retrieve ip for all wlans.
-    for wlan in wlans:
-        wlan.ip = None
-        with os.popen("ifconfig %s 2>/dev/null|grep 'inet addr'|awk -F ':' '{print $2}'|awk '{print $1}'"%(wlan.ifname)) as f:
-            ip = f.read().strip()
-            if len(ip) > 0:
-                wlan.ip = ip
-
-    # whether one is ok.
-    ok = False
-    for wlan in wlans:
-        if wlan.ip is not None:
-            print "Wlan %s is ok, ip is %s"%(wlan.ifname, wlan.ip)
-            time.sleep(30)
-            ok = True
-            break
-    if ok:
+    wlan = ifconfig_scan(wlans)
+    if wlan is not None:
+        print "Wlan %s is ok, ip is %s"%(wlan.ifname, wlan.ip)
+        time.sleep(30)
         continue
 
     # got the ap to connect.
@@ -142,8 +142,17 @@ while True:
                         break
                     time.sleep(3)
             if ok:
+                ok = False
+                for i in range(0, 20, 1):
+                    twlan = ifconfig_scan(wlans)
+                    if twlan is not None:
+                        ok = True
+                        break
+                    print "Wait %s to dispatch ip."%(wlan.ifname)
+                    time.sleep(3)
+            if ok:
                 # ok, set to None to keep it.
-                print "Config network %s for %s ok."%(nid, wlan.ifname)
+                print "Config network %s for %s ok, ip is %s."%(nid, wlan.ifname, wlan.ip)
                 nid = None
             else:
                 print "Config network %s ap(%s,%s) for %s failed."%(nid, ap.ssid, ap.psk, wlan.ifname)
