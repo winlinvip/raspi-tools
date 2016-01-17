@@ -3,7 +3,7 @@
 import os,sys,time
 
 print "RaspberryPi wlan auto connecter\n" \
-    "Copyright (c) 2013-2015 winlin(winlin@vip.126.com)"
+    "Copyright (c) 2015 winlin(winlin@vip.126.com)"
 
 if len(sys.argv) <= 2:
     print "Usage: %s <ssid0> <passwd0> [<ssidN> <passwdN>]\n" \
