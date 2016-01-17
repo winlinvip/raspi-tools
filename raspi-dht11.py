@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-import RPi.GPIO as GPIO, time, sys
+# depends on rpi.gpio, which can be install by:
+#      sudo apt-get install python-rpi.gpio
+import RPi.GPIO as GPIO
+import time, sys
 
 def sample(channel):
   GPIO.setmode(GPIO.BCM)
@@ -29,7 +32,7 @@ def sample(channel):
 
   return data
 
-def fn(x):
+def bits2Byte(x):
   v = 0
   for i in range(8):
     v += x[i] << (7-i)
@@ -44,11 +47,11 @@ try:
 finally:
   GPIO.cleanup()
 
-humidity = fn(data[0:8])
-humidity_point = fn(data[8:16])
-temperature = fn(data[16:24])
-temperature_point = fn(data[24:32])
-check = fn(data[32:40])
+humidity = bits2Byte(data[0:8])
+humidity_point = bits2Byte(data[8:16])
+temperature = bits2Byte(data[16:24])
+temperature_point = bits2Byte(data[24:32])
+check = bits2Byte(data[32:40])
 expect = humidity + humidity_point + temperature + temperature_point
 
 #print "got data: %s"%(data)
