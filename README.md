@@ -15,4 +15,11 @@ For example:
      raspi-wlan.py 'My AP SSID' 'Plain Passwd'
 ```
 
+## RaspiDH11
+
+The tool raspi-dh11.py used to read data from DH11, the temperature and humidity sensor.
+```
+sudo python raspi-dh11.py
+```
+
 Winlin 2016
