@@ -15,4 +15,6 @@ while True:
     r = ''
     for i in v:
         r += f.read()
+        print '.',
+    print ''
     print 'Arduino: %s'%(r)
