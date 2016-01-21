@@ -22,4 +22,13 @@ The tool raspi-dh11.py used to read data from DH11, the temperature and humidity
 sudo python raspi-dh11.py
 ```
 
+## RaspiPL2302
+
+The tool raspi-pl2302.py used to communicate with Arduino over PL2303(USB2SerialTTL).
+```
+sudo python raspi-pl2303.py
+```
+
+Please read [RaspberryPi+Arduino](http://blog.csdn.net/win_lin/article/details/50545678).
+
 Winlin 2016
