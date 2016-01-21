@@ -3,7 +3,7 @@
 # depends on rpi.gpio, which can be install by:
 #      sudo apt-get install python-rpi.gpio
 import RPi.GPIO as GPIO
-import time, sys
+import time, sys, json
 
 def bits2byte(x):
     v = 0
@@ -25,10 +25,10 @@ def dht11_sample(channel):
         continue
 
     data = []
-    for i in range(40):
+    for i in range(0, 40, 1):
         while GPIO.input(channel) == GPIO.LOW:
             continue
-        for j in range(100):
+        for j in range(0, 100, 1):
             if GPIO.input(channel) != GPIO.HIGH:
                 break
         if j < 8:
@@ -60,6 +60,7 @@ if __name__ == "__main__":
     #print "got data: %s"%(data)
     if check == expect:
         print "ok, temperature: %s *C, humidity: %s %%"%(temperature, humidity)
+        sys.stderr.write(json.dumps({"t":temperature, "h":humidity}))
         sys.exit(0)
     else:
         print "fail, temperature: %s *C, humidity: %s %%, check: %s != %s"%(temperature, humidity, check, expect)
