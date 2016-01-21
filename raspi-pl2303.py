@@ -2,8 +2,9 @@
 
 import serial
 
-print 'RaspberryPi PL2303(USB2SerialTTL) communicate.'
+print 'RaspberryPi communicate with Aruduino over PL2303(USB2SerialTTL)'
 print "Copyright (c) 2015 winlin(winlin@vip.126.com)"
+print "Please read http://blog.csdn.net/win_lin/article/details/50545678"
 
 f = serial.Serial('/dev/ttyUSB0', 115200)
 
