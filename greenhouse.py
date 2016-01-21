@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+########################################################################################
+########################################################################################
+########################################################################################
 # depends on rpi.gpio, which can be install by:
 #      sudo apt-get install python-rpi.gpio
 import RPi.GPIO as GPIO
@@ -52,15 +55,28 @@ def dht11_read():
     expect = humidity + humidity_point + temperature + temperature_point
     return (humidity, humidity_point, temperature, temperature_point, check, expect)
 
+########################################################################################
+########################################################################################
+########################################################################################
+import serial
+
+def pl2303_open(device="/dev/ttyUSB0"):
+    return serial.Serial(device, 115200)
+
+########################################################################################
+########################################################################################
+########################################################################################
+def loop():
+    return
 if __name__ == "__main__":
-    print "RaspberryPi DH11(temperature+humidity) application\n" \
-        "Copyright (c) 2015 winlin(winlin@vip.126.com)"
-    print "sample at GPIO18 for PI2"
-    (humidity, humidity_point, temperature, temperature_point, check, expect) = dht11_read()
-    #print "got data: %s"%(data)
-    if check == expect:
-        print "ok, temperature: %s *C, humidity: %s %%"%(temperature, humidity)
-        sys.exit(0)
-    else:
-        print "fail, temperature: %s *C, humidity: %s %%, check: %s != %s"%(temperature, humidity, check, expect)
-        sys.exit(-1)
+    print "Greenhouse use RaspberryPi and Arduino\n" \
+          "Copyright (c) 2015 winlin(winlin@vip.126.com)"
+    while True:
+        try:
+            print "start greenhouse loop."
+            loop()
+            time.sleep(1)
+        except Exception,ex:
+            print "ignore except: %s"%ex
+            time.sleep(3)
+
