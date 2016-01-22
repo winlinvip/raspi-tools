@@ -11,33 +11,29 @@ def pl2303_open(device="/dev/ttyUSB0"):
 ########################################################################################
 ########################################################################################
 ########################################################################################
+import raspi_core
 import os, time, datetime, json
 
 def trace(msg):
     print "%s: %s"%(datetime.datetime.now(), msg)
 
-def loop():
-    with os.popen("python raspi-dht11.py 2>/dev/stdout 1>/dev/null") as f:
-        ret = f.read().strip()
-    if len(ret) == 0:
-        trace("ignore failed to fetch temperature and humidity.")
-        time.sleep(3)
-        return
-
-    obj = json.loads(ret)
-    temperature = obj["t"]
-    humidity = obj["h"]
+def loop(channel, target, gate):
+    data=raspi_core.dht11_sample(channel)
+    (humidity, humidity_point, temperature, temperature_point, check, expect) = raspi_core.dht11_parse(data)
+    if check != expect:
+        raise Exception("invalid temperature.")
     trace("ok, temperature: %s *C, humidity: %s %%"%(temperature, humidity))
-
-    target_temperature = 19
-    if temperature < target_temperature:
-        trace("oh, it's too cold, let's open the heater to keep %s *C"%(target_temperature));
+    
+    diff = target - temperature
+    if diff > gate:
+        trace("oh, it's too cold, let's open the heater to keep %s *C"%(target));
         arduino.write('H')
-    return
+        return True
+    return False
 
-def read_artuino(arduino):
+def read_artuino(arduino, words):
     try:
-        for i in range(5):
+        for i in range(words):
             c = arduino.read(1)
             if c == 'H':
                 trace("arduino open the heater: %s(%s)"%(c, len(c)))
@@ -51,12 +47,23 @@ if __name__ == "__main__":
           "Copyright (c) 2015 winlin(winlin@vip.126.com)"
 
     arduino = pl2303_open()
-    while True:
-        try:
-            trace("let's look into the greenhouse.")
-            loop()
-        except Exception,ex:
-            trace("ignore except: %s"%ex)
-            time.sleep(5)
-        read_artuino(arduino)
+    try:
+        raspi_core.dht11_init()
+        gate = 2
+        while True:
+            try:
+                trace("let's look into the greenhouse.")
+                if loop(18, 21, gate): # GPIO18
+                    gate = 0 # set trigger to 0, to ensure the temperature reach target.
+                else:
+                    gate = 2 # when reach target, trigger only when diff is large.
+            except Exception,ex:
+                trace("ignore except: %s"%ex)
+            finally:
+                sleep_seconds=2
+                # the arduino will atleast print a char per second.
+                read_artuino(arduino, sleep_seconds)
+                time.sleep(sleep_seconds)
+    finally:
+        raspi_core.dht11_cleanup()
 
