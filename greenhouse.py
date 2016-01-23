@@ -38,6 +38,7 @@ def loop(ss, target, expire, trigger, overflow):
         if command != SimpleSerial.SSC_HEATER_OPENED:
             raise Exception("Invalid Response.")
         trace("Arduino Reply: %s"%(SimpleSerial.str(command)))
+        trigger = 0
         
     overflow = False
     if temperature >= target:
