@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-########################################################################################
-########################################################################################
-########################################################################################
+# @see https://github.com/winlinvip/SimpleSerial/blob/master/examples/CommandDefault/CommandDefault.ino
+# @see https://github.com/winlinvip/SimpleSerial/blob/master/SimpleSerial.py
 import SimpleSerial, os, time, datetime, json, sys
 
 def trace(msg):
@@ -67,5 +66,7 @@ if __name__ == "__main__":
                 trigger = 2
         except Exception, ex:
             trace("Ignore error: %s"%(ex))
-        time.sleep(1)
+            time.sleep(1)
+            continue
+        time.sleep(3)
     sys.exit(0)
