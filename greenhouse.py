@@ -23,24 +23,22 @@ def startup(ss):
     trace("Arduino reply: %s"%(SimpleSerial.str(command)))
     
 def detect(ss, temperature, humidity):
-    while True:
-        ss.write0(SimpleSerial.SSC_QUERY_TH)
-        for i in range(10):
-            if ss.available() == False:
-                time.sleep(0.1)
-            else:
-                break
-                
-        (command, t, h) = ss.read2()
-        if command == SimpleSerial.SSC_HEATER_CLOSED:
-            trace("Arduino close the heater for warm enough.")
-            continue
-        if command != SimpleSerial.SSC_RESP_TH:
-            raise Exception("Invalid QueryTH response: %s"%(SimpleSerial.str(command)))
-        if t != temperature or h != humidity:
-            trace("Arduino Detect: (%d*C %d%%) => (%d*C %d%%)"%(temperature, humidity, t, h))
-        break
-    return (t, h)
+    ss.write0(SimpleSerial.SSC_QUERY_TH)
+    for i in range(10):
+        if ss.available() == False:
+            time.sleep(0.1)
+        else:
+            break
+            
+    (command, t, h) = ss.read2()
+    if command == SimpleSerial.SSC_HEATER_CLOSED:
+        trace("Arduino close the heater for warm enough.")
+        return(0, 0, True)
+    if command != SimpleSerial.SSC_RESP_TH:
+        raise Exception("Invalid QueryTH response: %s"%(SimpleSerial.str(command)))
+    if t != temperature or h != humidity:
+        trace("Arduino Detect: (%d*C %d%%) => (%d*C %d%%)"%(temperature, humidity, t, h))
+    return (t, h, False)
     
 '''
 State Diagram
@@ -52,13 +50,17 @@ def serve(ss, target, expire, trigger, ostate, state, temperature, humidity):
         return (state, 'detect', 0, 0)
         
     if state == 'detect':
-        (t, h) = detect(ss, temperature, humidity)
+        (t, h, c) = detect(ss, temperature, humidity)
+        if c == True:
+            return (state, state, temperature, humidity)
         if t < target - trigger:
             return (state, 'heat', t, h)
         return (state, 'detect', t, h)
         
     if state == 'heat':
-        (t, h) = detect(ss, temperature, humidity)
+        (t, h, c) = detect(ss, temperature, humidity)
+        if c == True:
+            return (state, 'detect', temperature, humidity)
         if t < target:
             if ostate != state:
                 trace("Notify Arduino to open heater.")
