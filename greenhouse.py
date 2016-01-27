@@ -23,22 +23,25 @@ def startup(ss):
     trace("Arduino reply: %s"%(SimpleSerial.str(command)))
     
 def detect(ss, temperature, humidity):
-    ss.write0(SimpleSerial.SSC_QUERY_TH)
-    for i in range(10):
-        if ss.available() == False:
-            time.sleep(0.1)
-        else:
-            break
-            
-    (command, t, h) = ss.read2()
-    if command == SimpleSerial.SSC_HEATER_CLOSED:
-        trace("Arduino close the heater for warm enough.")
-        return(0, 0, True)
-    if command != SimpleSerial.SSC_RESP_TH:
-        raise Exception("Invalid QueryTH response: %s"%(SimpleSerial.str(command)))
-    if t != temperature or h != humidity:
-        trace("Arduino Detect: (%d*C %d%%) => (%d*C %d%%)"%(temperature, humidity, t, h))
-    return (t, h, False)
+    while True:
+        ss.write0(SimpleSerial.SSC_QUERY_TH)
+        for i in range(10):
+            if ss.available() == False:
+                time.sleep(0.1)
+            else:
+                break
+                
+        (command, t, h) = ss.read2()
+        if command == SimpleSerial.SSC_HEATER_CLOSED:
+            trace("Arduino close the heater for warm enough.")
+            return(0, 0, True)
+        if command != SimpleSerial.SSC_RESP_TH:
+            raise Exception("Invalid QueryTH response: %s"%(SimpleSerial.str(command)))
+        if command == SimpleSerial.SSC_HEATER_OPENED:
+            continue
+        if t != temperature or h != humidity:
+            trace("Arduino Detect: (%d*C %d%%) => (%d*C %d%%)"%(temperature, humidity, t, h))
+        return (t, h, False)
     
 '''
 State Diagram
