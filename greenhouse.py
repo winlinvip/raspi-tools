@@ -60,7 +60,7 @@ def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
             return (s, 'detect', ot, oh)
         if t < tt - tr:
             return (s, 'heat', t, h)
-        if h >= ht - hr:
+        if h >= ht + hr:
             return (s, 'fan', t, h)
         return (s, 'detect', t, h)
         
