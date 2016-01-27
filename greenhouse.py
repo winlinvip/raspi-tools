@@ -88,11 +88,11 @@ def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
         if cmd is not None:
             if sserial.is_fan_closed(cmd) == True:
                 trace("Arduino close the fan for humidity ok.")
-                return (s, 'detect', t, h)
+                return (s, 'detect', ot, oh)
             if sserial.is_fan_opened(cmd) == True:
                 if os != s:
                     trace("Arduino open fan ok, %d*C %d%%, target is %d%%"%(t, h, ht))
-                return (s, 'fan', t, h)
+                return (s, 'fan', ot, oh)
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
             return (s, 'fan', ot, oh)
