@@ -45,74 +45,70 @@ def detect(ss, cmd, temperature, humidity):
 State Diagram
 init => detect => work => detect
 '''
-def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
+def serve(ss, cmd, tt, te, tr, ht, he, hr, s, ot, oh):
     # process the events from Arduino.
     if cmd is not None:
         if sserial.is_not_supported(cmd) == True:
             trace("Ignore command %s"%(cmd.str()))
-            return (os, s, ot, oh)
+            return (s, ot, oh)
         elif sserial.is_unknown(cmd) == True:
             trace("Ignore command %s"%(cmd.str()))
-            return (os, s, ot, oh)
+            return (s, ot, oh)
         elif sserial.is_heater_closed(cmd) == True:
             trace("Arduino close the heater for warm enough.")
-            return (s, 'detect', ot, oh)
+            return ('detect', ot, oh)
         if sserial.is_heater_opened(cmd) == True:
-            if os != s:
-                trace("Arduino open heater ok, %d*C %d%%, target is %d*C"%(t, h, tt))
-            return (os, s, ot, oh)
+            trace("Arduino open heater ok, %d*C %d%%, target is %d*C"%(ot, oh, tt))
+            return (s, ot, oh)
         if sserial.is_fan_closed(cmd) == True:
             trace("Arduino close the fan for humidity ok.")
-            return (s, 'detect', ot, oh)
+            return ('detect', ot, oh)
         if sserial.is_fan_opened(cmd) == True:
-            if os != s:
-                trace("Arduino open fan ok, %d*C %d%%, target is %d%%"%(t, h, ht))
-            return (os, s, ot, oh)
+            trace("Arduino open fan ok, %d*C %d%%, target is %d%%"%(ot, oh, ht))
+            return (s, ot, oh)
             
     # use state machine to drive new event.
     if s == 'init':
         startup_ping(ss, cmd)
-        return (s, 'xtest', 0, 0)
+        return ('xtest', 0, 0)
     
     if s == 'xtest':
         startup_xtest(ss, cmd)
-        return (s, 'detect', 0, 0)
+        return ('detect', 0, 0)
         
     if s == 'detect':
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
-            return (s, 'detect', ot, oh)
+            return ('detect', ot, oh)
         if t < tt - tr:
-            return (s, 'heat', t, h)
+            return ('heat', t, h)
         if h >= ht + hr:
-            return (s, 'fan', t, h)
-        return (s, 'detect', t, h)
+            return ('fan', t, h)
+        return ('detect', t, h)
         
     if s == 'heat':
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
-            return (s, 'heat', ot, oh)
+            return ('heat', ot, oh)
         if t < tt:
-            if os != s:
-                trace("Notify Arduino to open heater.")
+            #trace("Notify Arduino to open heater.")
             ss.write(sserial.openHeater(tt, te))
-            return (s, 'heat', t, h)
+            return ('heat', t, h)
         trace("Warm enough, no need to heat, %d*C %d%%"%(t, h))
-        return (s, 'detect', t, h)
+        return ('detect', t, h)
         
     if s == 'fan':
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
-            return (s, 'fan', ot, oh)
-        if t < tt:
-            if os != s:
-                trace("Notify Arduino to open fan.")
+            return ('fan', ot, oh)
+        if h >= ht:
+            #trace("Notify Arduino to open fan.")
             ss.write(sserial.openFan(ht, he))
-            return (s, 'fan', t, h)
+            return ('fan', t, h)
         trace("Humidity ok, no need to fan, %d*C %d%%"%(t, h))
-        return (s, 'detect', t, h)
+        return ('detect', t, h)
         
-    return (s, 'init', 0, 0)
+    return ('init', 0, 0)
 
 if __name__ == "__main__":
     print "Greenhouse use RaspberryPi and Arduino\n" \
@@ -120,14 +116,13 @@ if __name__ == "__main__":
           
     # start heater when <=(target-trigger)
     # stop heater when overflow, texpire in seconds.
-    (tt, te, tr, ht, he, hr, os, s, t, h) = (
+    (tt, te, tr, ht, he, hr, s, t, h) = (
         21, # tt, temperature target
         30, # te, temperature expire
         2, # tr, temperature trigger
         50, # ht, humidity target
         30, # he, humidity expire
         10, # hr, humidity trigger
-        'init', # os, original state
         'init', # s, state
         0, # t, temperature
         0 # h, humifity
@@ -141,7 +136,7 @@ if __name__ == "__main__":
                 cmd = ss.read()
                     
             # input and output the states.
-            (os, s, t, h) = serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, t, h)
+            (s, t, h) = serve(ss, cmd, tt, te, tr, ht, he, hr, s, t, h)
         except int, ex:
             trace("Ignore error: %s"%(ex))
         time.sleep(3)
