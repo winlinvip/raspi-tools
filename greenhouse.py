@@ -46,6 +46,30 @@ State Diagram
 init => detect => work => detect
 '''
 def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
+    # process the events from Arduino.
+    if cmd is not None:
+        if sserial.is_not_supported(cmd) == True:
+            trace("Ignore command %s"%(cmd.str()))
+            return (os, s, ot, oh)
+        elif sserial.is_unknown(cmd) == True:
+            trace("Ignore command %s"%(cmd.str()))
+            return (os, s, ot, oh)
+        elif sserial.is_heater_closed(cmd) == True:
+            trace("Arduino close the heater for warm enough.")
+            return (s, 'detect', ot, oh)
+        if sserial.is_heater_opened(cmd) == True:
+            if os != s:
+                trace("Arduino open heater ok, %d*C %d%%, target is %d*C"%(t, h, tt))
+            return (os, s, ot, oh)
+        if sserial.is_fan_closed(cmd) == True:
+            trace("Arduino close the fan for humidity ok.")
+            return (s, 'detect', ot, oh)
+        if sserial.is_fan_opened(cmd) == True:
+            if os != s:
+                trace("Arduino open fan ok, %d*C %d%%, target is %d%%"%(t, h, ht))
+            return (os, s, ot, oh)
+            
+    # use state machine to drive new event.
     if s == 'init':
         startup_ping(ss, cmd)
         return (s, 'xtest', 0, 0)
@@ -65,14 +89,6 @@ def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
         return (s, 'detect', t, h)
         
     if s == 'heat':
-        if cmd is not None:
-            if sserial.is_heater_closed(cmd) == True:
-                trace("Arduino close the heater for warm enough.")
-                return (s, 'detect', ot, oh)
-            if sserial.is_heater_opened(cmd) == True:
-                if os != s:
-                    trace("Arduino open heater ok, %d*C %d%%, target is %d*C"%(t, h, tt))
-                return (s, 'heat', ot, oh)
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
             return (s, 'heat', ot, oh)
@@ -85,14 +101,6 @@ def serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, ot, oh):
         return (s, 'detect', t, h)
         
     if s == 'fan':
-        if cmd is not None:
-            if sserial.is_fan_closed(cmd) == True:
-                trace("Arduino close the fan for humidity ok.")
-                return (s, 'detect', ot, oh)
-            if sserial.is_fan_opened(cmd) == True:
-                if os != s:
-                    trace("Arduino open fan ok, %d*C %d%%, target is %d%%"%(t, h, ht))
-                return (s, 'fan', ot, oh)
         (t, h) = detect(ss, cmd, ot, oh)
         if t == 0 and h == 0:
             return (s, 'fan', ot, oh)
@@ -131,12 +139,6 @@ if __name__ == "__main__":
             cmd = None
             if s != 'init' and ss.available(3) == True:
                 cmd = ss.read()
-                
-            if cmd is not None:
-                if sserial.is_not_supported(cmd) == True:
-                    trace("Ignore command %s"%(cmd.str()))
-                elif sserial.is_unknown(cmd) == True:
-                    trace("Ignore command %s"%(cmd.str()))
                     
             # input and output the states.
             (os, s, t, h) = serve(ss, cmd, tt, te, tr, ht, he, hr, os, s, t, h)
