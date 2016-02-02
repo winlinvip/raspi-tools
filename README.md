@@ -31,4 +31,11 @@ sudo python raspi-pl2303.py
 
 Please read [RaspberryPi+Arduino](http://blog.csdn.net/win_lin/article/details/50545678).
 
+## Greenhouse
+
+The tool greenhouse.py used to control the temperature and humidity,
+with an [android app](https://github.com/winlinvip/raspi-tools/tree/master/android).
+
+Please read [Greenhouse control](http://blog.csdn.net/win_lin/article/details/50572308).
+
 Winlin 2016
