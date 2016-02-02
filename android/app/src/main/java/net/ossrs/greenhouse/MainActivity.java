@@ -37,13 +37,14 @@ public class MainActivity extends ActionBarActivity {
     protected void onResume() {
         super.onResume();
 
+        final int[] count = {0};
         handler = new Handler(new Handler.Callback() {
             @Override
             public boolean handleMessage(Message msg) {
                 TextView txt = (TextView)findViewById(R.id.txt_main);
                 Bundle b = msg.getData();
-                txt.setText(String.format("温室(%s,%d*C,%d%%), 外部(%d*C,%d%%)",
-                        b.getString("s"), b.getInt("t"), b.getInt("h"),
+                txt.setText(String.format("%d: 温室(%s,%d*C,%d%%), 外部(%d*C,%d%%)",
+                        ++count[0], b.getString("s"), b.getInt("t"), b.getInt("h"),
                         b.getInt("ts"), b.getInt("hs")));
                 return true;
             }
@@ -51,7 +52,15 @@ public class MainActivity extends ActionBarActivity {
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
-                while (!Thread.currentThread().isInterrupted()) {
+                while (true) {
+                    for (int i = 0; i < 100; i++) {
+                        try {
+                            Thread.sleep(30);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     Bundle b = new Bundle();
                     b.putString("s", "unknown");
                     b.putInt("t", 0);
@@ -112,12 +121,6 @@ public class MainActivity extends ActionBarActivity {
                     msg.what = 100;
                     msg.setData(b);
                     handler.sendMessage(msg);
-
-                    try {
-                        Thread.sleep(3000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         });
