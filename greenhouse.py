@@ -2,7 +2,7 @@
 
 # @see https://github.com/winlinvip/SimpleSerial/blob/master/examples/CommandDefault/CommandDefault.ino
 # @see https://github.com/winlinvip/SimpleSerial/blob/master/SimpleSerial.py
-import SimpleSerial as sserial, os, time, datetime, json, sys
+import SimpleSerial as sserial, os, time, datetime, json, sys, urllib2
 
 def trace(msg):
     print "%s: %s"%(datetime.datetime.now(), msg)
@@ -109,6 +109,13 @@ def serve(ss, cmd, tt, te, tr, ht, he, hr, s, ot, oh):
         return ('detect', t, h)
         
     return ('init', 0, 0)
+    
+def report(id, obj):
+    data = json.dumps({
+        "id": id,
+        "data": obj
+    })
+    urllib2.urlopen("http://127.0.0.1:2015/api/v1/htbt/devices", data).close()
 
 if __name__ == "__main__":
     print "Greenhouse use RaspberryPi and Arduino\n" \
@@ -120,9 +127,9 @@ if __name__ == "__main__":
         21, # tt, temperature target
         30, # te, temperature expire
         2, # tr, temperature trigger
-        50, # ht, humidity target
+        75, # ht, humidity target
         30, # he, humidity expire
-        10, # hr, humidity trigger
+        15, # hr, humidity trigger
         'init', # s, state
         0, # t, temperature
         0 # h, humifity
@@ -134,10 +141,19 @@ if __name__ == "__main__":
             cmd = None
             if s != 'init' and ss.available(3) == True:
                 cmd = ss.read()
+            
+            if cmd is not None:
+                if sserial.is_resp_th2(cmd):
+                    t2, h2 = cmd.arg1()
+                    report("space",  { "temperature": t2, "humidity": h2})
+                    continue
                     
             # input and output the states.
             (s, t, h) = serve(ss, cmd, tt, te, tr, ht, he, hr, s, t, h)
-        except int, ex:
+            
+            # remote to local oryx server, which heatbeat to ossrs.
+            report("greenhouse",  { "temperature": t, "humidity": h, "state": s })
+        except Exception, ex:
             trace("Ignore error: %s"%(ex))
         time.sleep(3)
     sys.exit(0)
