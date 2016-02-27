@@ -4,11 +4,11 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-import org.apache.http.client.HttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -20,12 +20,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-
 
 public class MainActivity extends ActionBarActivity {
+    private final String TAG = "GreenHouse";
     private Handler handler;
     private Thread worker;
+    private HttpURLConnection conn;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,23 +41,31 @@ public class MainActivity extends ActionBarActivity {
         handler = new Handler(new Handler.Callback() {
             @Override
             public boolean handleMessage(Message msg) {
-                TextView txt = (TextView)findViewById(R.id.txt_main);
+                if (msg.what != 100) {
+                    return false;
+                }
+
                 Bundle b = msg.getData();
-                txt.setText(String.format("%d: 温室(%s,%d*C,%d%%), 外部(%d*C,%d%%)",
+                String summary = String.format("%d: 温室(%s,%d*C,%d%%), 外部(%d*C,%d%%)",
                         ++count[0], b.getString("s"), b.getInt("t"), b.getInt("h"),
-                        b.getInt("ts"), b.getInt("hs")));
+                        b.getInt("ts"), b.getInt("hs"));
+                Log.i(TAG, summary);
+
+                TextView txt = (TextView)findViewById(R.id.txt_main);
+                txt.setText(summary);
                 return true;
             }
         });
         worker = new Thread(new Runnable() {
             @Override
             public void run() {
-                while (true) {
+                while (!Thread.currentThread().isInterrupted()) {
                     for (int i = 0; i < 100; i++) {
                         try {
                             Thread.sleep(30);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            Log.i(TAG, "Thread interrupted.");
+                            return;
                         }
                     }
 
@@ -72,12 +80,16 @@ public class MainActivity extends ActionBarActivity {
                     try {
                         url = new URL("http://ossrs.net:8085/api/v1/servers");
                     } catch (MalformedURLException e) {
+                        Log.i(TAG, "URL create failed.");
                         e.printStackTrace();
+                        continue;
                     }
 
-                    HttpURLConnection conn = null;
                     try {
+                        Log.i(TAG, "Start to fetch data.");
                         conn = (HttpURLConnection) url.openConnection();
+                        conn.setConnectTimeout(3000);
+                        conn.setReadTimeout(30000);
                         conn.setRequestMethod("GET");
                         BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
 
@@ -107,13 +119,20 @@ public class MainActivity extends ActionBarActivity {
                             b.putInt("hs", space.getInt("humidity"));
                             break;
                         }
+
+                        Log.i(TAG, "Fetch data ok");
                     } catch (IOException e) {
+                        Log.i(TAG, "Fetch IO failed.");
                         e.printStackTrace();
+                        continue;
                     } catch (JSONException e) {
+                        Log.i(TAG, "Fetch JSON failed.");
                         e.printStackTrace();
+                        continue;
                     } finally {
                         if (conn != null) {
                             conn.disconnect();
+                            conn = null;
                         }
                     }
 
@@ -122,6 +141,7 @@ public class MainActivity extends ActionBarActivity {
                     msg.setData(b);
                     handler.sendMessage(msg);
                 }
+                Log.i(TAG, "Worker thread ok.");
             }
         });
         worker.start();
@@ -131,12 +151,25 @@ public class MainActivity extends ActionBarActivity {
     protected void onPause() {
         super.onPause();
 
+        Log.i(TAG, "Paused to stop thread.");
+        // interrupt the thread in sleep state.
         worker.interrupt();
+        // interrupt the thread in io state.
+        if (conn != null) {
+            // it's important to close the connection,
+            // or the thread maybe blocked in io(read/write),
+            // for example, the server is slow or tcp retransmit.
+            conn.disconnect();
+        }
+
+        // wait for thread to quit, it must quit.
         try {
             worker.join();
         } catch (InterruptedException e) {
             e.printStackTrace();
+
         }
+        Log.i(TAG, "Thread terminated.");
     }
 
     @Override
